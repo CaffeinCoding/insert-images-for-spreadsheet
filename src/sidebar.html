@@ -895,17 +895,33 @@
 
           const reader = new FileReader();
           reader.onload = function (event) {
-            const image = {
-              id: `img_${Date.now()}_${index}`,
-              name: file.name,
-              data: event.target.result,
-              file: file,
-              size: file.size,
-            };
+            // Phase 2: 이미지 메타데이터 추출
+            const img = new Image();
+            img.onload = function () {
+              const image = {
+                id: `img_${Date.now()}_${index}`,
+                name: file.name,
+                data: event.target.result,
+                file: file,
+                size: file.size,
+                // Phase 2 추가: 이미지 메타데이터
+                width: img.width,
+                height: img.height,
+                ratio: img.width / img.height,
+              };
 
-            appState.images.push(image);
-            updateImageList();
-            triggerPreviewUpdate();
+              appState.images.push(image);
+              updateImageList();
+              triggerPreviewUpdate();
+              console.log(
+                `이미지 로드: ${file.name} (${img.width}x${img.height})`
+              );
+            };
+            img.onerror = function () {
+              console.error(`이미지 로드 실패: ${file.name}`);
+              alert(`이미지 로드 실패: ${file.name}`);
+            };
+            img.src = URL.createObjectURL(file);
           };
           reader.readAsArrayBuffer(file);
         });
@@ -956,6 +972,20 @@
                 address: result.address,
               };
               document.getElementById("selectedCell").value = result.address;
+
+              // Phase 2: 선택된 셀의 크기 정보 조회
+              google.script.run
+                .withSuccessHandler(function (dimResult) {
+                  if (dimResult.success) {
+                    appState.selectedCell.width = dimResult.width;
+                    appState.selectedCell.height = dimResult.height;
+                    console.log(
+                      `선택 셀 크기: ${dimResult.width}px x ${dimResult.height}px`
+                    );
+                  }
+                })
+                .getSelectedCellDimensions();
+
               triggerPreviewUpdate();
             }
           })
@@ -1163,15 +1193,16 @@
    ====================== */
 
       function handleCompleteClick() {
-        if (!appState.selectedCell) {
-          alert("셀을 먼저 선택해주세요.");
+        // Phase 2: 배치 검증
+        const validation = validateLayoutAndImages();
+
+        if (!validation.valid) {
+          alert(validation.error);
           return;
         }
 
-        if (appState.images.length === 0) {
-          alert("이미지를 먼저 선택해주세요.");
-          return;
-        }
+        console.log(validation.message);
+        logImagePlacementInfo();
 
         appState.isProcessing = true;
         updateCompleteButtonState();
@@ -1181,6 +1212,7 @@
           cellLocation: appState.selectedCell,
           imageCount: appState.images.length,
           settings: appState.patternSettings,
+          positions: validation.positions,
         });
 
         // 테스트용 progress 표시
@@ -1367,6 +1399,88 @@
         }
 
         return positions;
+      }
+
+      // Phase 2: 배치 로직 검증 함수
+      function validateLayoutAndImages() {
+        if (!appState.selectedCell) {
+          return {
+            valid: false,
+            error: "셀을 먼저 선택해주세요.",
+          };
+        }
+
+        if (appState.images.length === 0) {
+          return {
+            valid: false,
+            error: "이미지를 먼저 선택해주세요.",
+          };
+        }
+
+        // 배치 설정 검증
+        const layoutSettings = {
+          startRow: appState.selectedCell.row,
+          startCol: appState.selectedCell.col,
+          rows: appState.patternSettings.rows,
+          cols: appState.patternSettings.cols,
+          rowGap: appState.patternSettings.rowGap,
+          colGap: appState.patternSettings.colGap,
+          inactiveCells: appState.inactiveCells,
+        };
+
+        // Google Apps Script에서 검증
+        let validationResult = { valid: true };
+        google.script.run
+          .withSuccessHandler(function (result) {
+            validationResult = result;
+          })
+          .validateLayoutSettings(layoutSettings);
+
+        // 배치 가능한 셀 개수 확인
+        const positions = calculateLayoutPositions();
+        const availableCells = positions.length;
+        const imageCount = appState.images.length;
+
+        console.log(
+          `배치 분석: 사용 가능한 셀 ${availableCells}개, 이미지 ${imageCount}개`
+        );
+
+        if (validationResult.valid && availableCells > 0) {
+          return {
+            valid: true,
+            positions: positions,
+            message: `${imageCount}개 이미지를 ${availableCells}개 셀에 배치 예정`,
+          };
+        } else {
+          return {
+            valid: false,
+            error:
+              validationResult.errors?.join(", ") ||
+              "배치 설정이 유효하지 않습니다.",
+          };
+        }
+      }
+
+      // Phase 2: 이미지 배치 정보 로그
+      function logImagePlacementInfo() {
+        const positions = calculateLayoutPositions();
+
+        if (positions.length === 0) {
+          console.warn("사용 가능한 배치 위치가 없습니다.");
+          return;
+        }
+
+        console.group("📍 이미지 배치 정보");
+        console.log(
+          `패턴: ${appState.patternSettings.rows}행 x ${appState.patternSettings.cols}열`
+        );
+        console.log(
+          `간격: 행 ${appState.patternSettings.rowGap}, 열 ${appState.patternSettings.colGap}`
+        );
+        console.log(`이미지 개수: ${appState.images.length}`);
+        console.log(`배치 가능 셀: ${positions.length}`);
+        console.log("배치 위치:", positions);
+        console.groupEnd();
       }
 
       console.log("Sidebar initialized");

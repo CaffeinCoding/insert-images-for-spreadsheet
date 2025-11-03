@@ -1,209 +1,190 @@
 # 개발 진행 상황
 
-## 📊 전체 진행도: 5% (Phase 1/8)
+## 📊 전체 진행도: 25% (Phase 1~2/8)
 
 ---
 
 ## ✅ Phase 1: 프로젝트 초기화 및 기본 환경 구성 (완료)
 
-**목표**: 개발 환경 설정 및 프로젝트 구조 수립
+**상태**: ✅ 완료
+**기간**: 완료됨
 
-### 1.1 Google Apps Script 프로젝트 생성 ✅
-
-- [x] `Code.gs` 파일 생성
-- [x] `appsscript.json` 매니페스트 파일 생성
-- [x] 필수 권한 선언 (spreadsheets, script)
-- [x] 런타임 버전 설정 (V8)
-
-### 1.2 Sidebar 기본 레이아웃 구성 ✅
-
-- [x] `sidebar.html` 생성
-- [x] 헤더 영역 (프로젝트 제목)
-- [x] 상단 버튼 영역 (이미지 가져오기, 완료/저장, 취소)
-- [x] 콘텐츠 영역 구성
-  - [x] 이미지 리스트 (Collapsible)
-  - [x] 설정 패널 (행/열 개수, 간격, 크기)
-  - [x] 비활성 셀 지정 표
-- [x] Progress 바 UI
-- [x] 반응형 레이아웃 기초 구성
-
-### 1.3 스타일 및 테마 구성 ✅
-
-- [x] `styles.css` 생성
-- [x] CSS 변수 기반 색상 시스템
-- [x] 다크모드 지원 (prefers-color-scheme)
-- [x] 반응형 디자인 구현
-- [x] 스프레드시트 유사 디자인
-
-### 1.4 기본 JavaScript 프레임워크 ✅
-
-- [x] `sidebar.js` 생성
-- [x] 상태 관리 (appState) 구현
-- [x] 이벤트 리스너 설정
-- [x] localStorage 저장/복구 기본 로직
-- [x] 유틸리티 함수 (debounce, calculateLayoutPositions 등)
-
-### 1.5 Google Apps Script 백엔드 기본 함수 ✅
-
-- [x] `onOpen()` - 메뉴 추가 및 초기화
-- [x] `openSidebar()` - Sidebar 열기
-- [x] `getSelectedCellInfo()` - 선택된 셀 정보 조회
-- [x] `calculateLayoutPositions()` - 배치 좌표 계산
-- [x] `setCellBackgroundColors()` - 셀 배경색 설정
-- [x] `restoreOriginalColors()` - 셀 배경색 복구
-- [x] `undoLastAction()` - Undo 기능
+- [x] Google Apps Script 프로젝트 생성
+- [x] Sidebar 기본 레이아웃 구성
+- [x] 스타일 및 테마 구성 (다크모드 지원)
+- [x] 기본 JavaScript 프레임워크
+- [x] Google Apps Script 백엔드 기본 함수
 
 ---
 
-## ⏳ Phase 2: 이미지 관리 및 기본 배치 로직 (예정)
+## ✅ Phase 2: 이미지 관리 및 기본 배치 로직 (완료)
 
-**목표**: 이미지 입력, 관리, 기본 배치 로직 구현  
-**예상 기간**: 1주
+**상태**: ✅ 완료
+**기간**: 완료됨
 
-### 2.1 이미지 업로드 및 리스트 관리 (예정)
+### 2.1 이미지 업로드 및 리스트 관리 ✅
 
-- [ ] 파일 선택 다이얼로그 구현
-- [ ] 이미지 파일 유효성 검증
-- [ ] 이미지 메타데이터 추출
-- [ ] 이미지 리스트 상태 관리
-- [ ] 이미지 리스트 UI 렌더링
-- [ ] 이미지 삭제 기능
-- [ ] 총 이미지 개수 표시
+- [x] 파일 선택 다이얼로그
+- [x] 이미지 유효성 검증
+- [x] **이미지 메타데이터 추출** (width, height, ratio) - Phase 2 핵심!
+- [x] 이미지 로드 성공/실패 처리
+- [x] 이미지 리스트 UI 렌더링
+- [x] 이미지 삭제 기능
+- [x] 에러 핸들링
 
-### 2.2 셀 선택 및 패턴 기본 설정 (예정)
+### 2.2 셀 선택 및 패턴 기본 설정 ✅
+
+- [x] onSelectionChange 이벤트 구현 (1초마다 폴링)
+- [x] 선택 셀 좌표 표시
+- [x] **선택 셀 크기 정보 조회** (새로 추가!) - Phase 2 핵심!
+- [x] 행/열 개수 입력 필드
+- [x] 간격 설정 입력 필드
+- [x] 범위 제한 검증
+- [x] 설정값 실시간 상태 업데이트
+
+### 2.3 격자형 배치 로직 (간격 포함) ✅
+
+- [x] 배치 좌표 계산
+- [x] 간격 포함 배치 로직
+- [x] 비활성 셀 제외 처리
+- [x] **배치 검증 함수** (새로 추가!) - Phase 2 핵심!
+- [x] **배치 정보 로깅** (새로 추가!) - Phase 2 핵심!
+- [x] 이미지-셀 매핑
+
+---
+
+## 📝 Phase 2 구현 요약
+
+### Frontend 개선사항 (sidebar.html)
+
+```javascript
+// 2.1: 이미지 메타데이터 추출
+const image = {
+  id: string,
+  name: string,
+  width: number,      // ✨ 새로 추가
+  height: number,     // ✨ 새로 추가
+  ratio: number,      // ✨ 새로 추가
+  data: ArrayBuffer,
+  file: File,
+  size: number
+};
+
+// 2.2: 선택 셀 크기 정보
+selectedCell: {
+  row: number,
+  col: number,
+  address: string,
+  width: number,      // ✨ 새로 추가 (픽셀)
+  height: number      // ✨ 새로 추가 (픽셀)
+};
+
+// 2.3: 배치 검증 및 로깅
+function validateLayoutAndImages() { ... }  // ✨ 새로 추가
+function logImagePlacementInfo() { ... }    // ✨ 새로 추가
+```
+
+### Backend 개선사항 (Code.gs)
+
+```javascript
+// ✨ 2.2 새로 추가
+function getSelectedCellDimensions() { ... }
+
+// ✨ 2.3 새로 추가
+function validateLayoutSettings(settings) { ... }
+function calculateAvailablePositions(settings) { ... }
+```
+
+### 추가된 함수 목록
+
+| 함수                          | 위치     | 목적                          |
+| ----------------------------- | -------- | ----------------------------- |
+| `handleFileSelect`            | Frontend | 이미지 메타데이터 추출        |
+| `updateSelectedCell`          | Frontend | 선택 셀 크기 정보 조회        |
+| `validateLayoutAndImages`     | Frontend | 배치 검증 (Phase 2)           |
+| `logImagePlacementInfo`       | Frontend | 배치 정보 로깅 (Phase 2)      |
+| `getSelectedCellDimensions`   | Backend  | 선택 셀 크기 조회 (Phase 2)   |
+| `validateLayoutSettings`      | Backend  | 배치 설정 검증 (Phase 2)      |
+| `calculateAvailablePositions` | Backend  | 사용 가능한 셀 계산 (Phase 2) |
+
+---
+
+## ⏳ Phase 3: 프리뷰 시스템 (예정)
+
+**목표**: 실시간 배치 프리뷰 및 색상 시스템 구현  
+**예상 기간**: 3~4일
+
+### 3.1 프리뷰 배경색 시스템 (예정)
+
+- [ ] 스프레드시트 셀 배경색 변경
+- [ ] 기존 배경색 저장 및 복구
+- [ ] 색상 우선순위 관리
+- [ ] 혼합 색상 처리
+
+### 3.2 debounce 및 프리뷰 갱신 (예정)
+
+- [ ] debounce 함수 구현
+- [ ] 설정값 변경 감지
+- [ ] 프리뷰 갱신 트리거
+
+### 3.3 선택 셀 프리뷰 시스템 (예정)
 
 - [ ] onSelectionChange 이벤트 구현
-- [ ] 선택한 셀 좌표 표시
-- [ ] 행/열 개수 입력 필드 연동
-- [ ] 범위 제한 검증
-- [ ] 설정값 실시간 상태 업데이트
-
-### 2.3 격자형 배치 로직 (간격 포함) (예정)
-
-- [ ] 간격 설정 입력 필드
-- [ ] 배치 좌표 계산 함수
-- [ ] 비활성 셀 제외 로직
-- [ ] 이미지-셀 매핑 함수
+- [ ] 선택 셀 배경색 적용
+- [ ] 선택 셀 변경 시 프리뷰 갱신
 
 ---
 
-## 📅 향후 예정 (Phase 3 ~ 8)
-
-### Phase 3: 프리뷰 시스템 (예정)
-
-- 실시간 배치 프리뷰
-- 색상 우선순위 관리
-- 선택 셀 프리뷰
-
-### Phase 4: 이미지 크기 및 설정 관리 (예정)
-
-- 이미지 크기 설정 UI
-- 비율 유지 및 셀 맞춤
-- 상태 관리 통합
-
-### Phase 5: localStorage 및 고급 기능 (예정)
-
-- 설정값 저장/복구
-- 드래그 앤 드롭 정렬
-- 리스트 Collapsible 기능
-
-### Phase 6: 이미지 삽입 및 에러 처리 (예정)
-
-- 이미지 삽입 로직
-- Progress 표시
-- 에러 처리 시스템
-
-### Phase 7: UI/UX 개선 및 최적화 (예정)
-
-- 다크모드 완성
-- 성능 최적화
-- 애니메이션 추가
-
-### Phase 8: 테스트 및 배포 (예정)
-
-- 기능 테스트
-- 호환성 테스트
-- 배포 준비
-
----
-
-## 🔧 완료된 구현사항
-
-### 파일 구조
+## 🔧 완료된 파일 구조
 
 ```
-✅ Code.gs (140줄)
-✅ sidebar.html (160줄)
-✅ sidebar.js (650줄)
-✅ styles.css (700줄)
-✅ appsscript.json
-✅ README.md
+✅ src/Code.gs (210줄)
+✅ src/sidebar.html (1376줄)
+✅ src/appsscript.json
+✅ README.md (244줄)
+✅ DEVELOPMENT_STATUS.md (이 파일)
+✅ PHASE2_GUIDE.md (새로 추가!) 📖
+✅ CLASP_SETUP_GUIDE.md (기존)
 ```
-
-### 주요 기능
-
-- ✅ 기본 UI 프레임워크
-- ✅ 상태 관리 시스템
-- ✅ localStorage 기초 구현
-- ✅ 이벤트 핸들링 프레임워크
-- ✅ CSS 변수 기반 테마 시스템
-- ✅ 반응형 디자인
-- ✅ 다크모드 지원
-
-### Google Apps Script 함수
-
-- ✅ Sidebar 생성 및 관리
-- ✅ 셀 정보 조회
-- ✅ 배치 계산 로직
-- ✅ 셀 색상 처리
-
----
-
-## 🎯 다음 단계
-
-### 즉시 작업 (Phase 2 시작)
-
-1. **이미지 업로드 기능**
-
-   - 파일 선택 다이얼로그
-   - 이미지 검증
-   - 리스트 렌더링
-
-2. **선택 셀 연동**
-
-   - onSelectionChange 이벤트
-   - 자동 업데이트
-
-3. **배치 로직 구현**
-   - 좌표 계산 검증
-   - 간격 적용
-   - 비활성 셀 처리
-
----
-
-## 📝 주의사항
-
-### 성능 관련
-
-- 대량 이미지 처리 시 Virtual scrolling 고려
-- API 호출 최소화 (Batch 처리)
-- debounce 확인 (0.5초)
-
-### 테스트 필요 항목
-
-- Phase 2 배치 로직 정확도 (매우 중요!)
-- 간격 계산 검증
-- 비활성 셀 처리 확인
 
 ---
 
 ## 📈 진행률 계산
 
 - Phase 1: 100% ✅
-- Phase 2~8: 0% (예정)
-- **전체**: 1/8 = 12.5%
+- Phase 2: 100% ✅
+- Phase 3~8: 0% (예정)
+- **전체**: 2/8 = 25% ✅
 
 ---
 
-**마지막 업데이트**: 2024년 현재  
-**다음 예정**: Phase 2 이미지 관리 시작
+## 🎯 다음 단계
+
+### Phase 3 시작 준비
+
+1. 프리뷰 배경색 시스템 구현
+2. Debounce 타이머 구현
+3. 선택 셀 프리뷰 기능
+
+### 테스트 항목 (Phase 2)
+
+- ✅ 이미지 업로드 및 메타데이터 추출
+- ✅ 배치 좌표 계산
+- ✅ 배치 검증 로직
+- ✅ 간격 처리
+- ✅ 비활성 셀 처리
+
+---
+
+## 📚 문서 가이드
+
+- **README.md**: 프로젝트 개요 및 시작 가이드
+- **개발계획.md**: 전체 개발 로드맵
+- **PHASE2_GUIDE.md**: Phase 2 상세 구현 가이드 📖 (새로 추가!)
+- **DEVELOPMENT_STATUS.md**: 진행 상황 추적 (이 파일)
+- **CLASP_SETUP_GUIDE.md**: 로컬 개발 환경 설정
+
+---
+
+**마지막 업데이트**: Phase 2 완료  
+**다음 예정**: Phase 3 프리뷰 시스템 시작

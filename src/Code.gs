@@ -51,6 +51,39 @@ function getSelectedCellInfo() {
 }
 
 /**
+ * 선택된 셀의 픽셀 단위 크기 반환 (Phase 2)
+ * @returns {Object} {width: number, height: number} 픽셀 단위
+ */
+function getSelectedCellDimensions() {
+  try {
+    const sheet = SpreadsheetApp.getActiveSheet();
+    const range = sheet.getActiveRange();
+
+    if (!range) {
+      return { success: false, error: "셀을 선택해주세요" };
+    }
+
+    // 구글 시트의 기본 셀 크기 (픽셀)
+    // 행 높이: 약 21 픽셀 (기본값)
+    // 열 너비: 약 88 픽셀 (기본값, 고정폭)
+    const defaultRowHeight = 21;
+    const defaultColWidth = 88;
+
+    // 실제 행/열 크기 (필요시 API로 가져올 수 있음)
+    const rowHeight = range.getRowHeight() || defaultRowHeight;
+    const colWidth = range.getColumnWidth() || defaultColWidth;
+
+    return {
+      success: true,
+      width: colWidth,
+      height: rowHeight,
+    };
+  } catch (e) {
+    return { success: false, error: e.toString() };
+  }
+}
+
+/**
  * 격자형 배치에 따른 셀 좌표 계산
  * @param {Object} settings - 배치 설정
  * @returns {Array<{row, col}>} 계산된 좌표 배열
@@ -88,6 +121,70 @@ function calculateLayoutPositions(settings) {
   }
 
   return positions;
+}
+
+/**
+ * 배치 로직 검증 (Phase 2)
+ * @param {Object} settings - 배치 설정
+ * @returns {Object} {valid: boolean, errors: string[]}
+ */
+function validateLayoutSettings(settings) {
+  const errors = [];
+
+  if (!settings.startRow || settings.startRow < 1) {
+    errors.push("시작 행이 유효하지 않습니다.");
+  }
+
+  if (!settings.startCol || settings.startCol < 1) {
+    errors.push("시작 열이 유효하지 않습니다.");
+  }
+
+  if (!settings.rows || settings.rows < 1 || settings.rows > 50) {
+    errors.push("행 개수는 1~50 사이여야 합니다.");
+  }
+
+  if (!settings.cols || settings.cols < 1 || settings.cols > 50) {
+    errors.push("열 개수는 1~50 사이여야 합니다.");
+  }
+
+  if (settings.rowGap < 0 || settings.rowGap > 20) {
+    errors.push("행 간격은 0~20 사이여야 합니다.");
+  }
+
+  if (settings.colGap < 0 || settings.colGap > 20) {
+    errors.push("열 간격은 0~20 사이여야 합니다.");
+  }
+
+  const availableCells = calculateAvailablePositions(settings);
+  if (availableCells === 0) {
+    errors.push("사용 가능한 셀이 없습니다.");
+  }
+
+  return {
+    valid: errors.length === 0,
+    errors: errors,
+  };
+}
+
+/**
+ * 사용 가능한 셀 개수 계산 (비활성 셀 제외)
+ * @param {Object} settings - 배치 설정
+ * @returns {number} 사용 가능한 셀 개수
+ */
+function calculateAvailablePositions(settings) {
+  const { rows, cols, inactiveCells = [] } = settings;
+  let count = 0;
+
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      const isInactive = inactiveCells[r] && inactiveCells[r][c];
+      if (!isInactive) {
+        count++;
+      }
+    }
+  }
+
+  return count;
 }
 
 /**
