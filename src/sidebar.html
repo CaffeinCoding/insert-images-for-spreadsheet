@@ -1,0 +1,1375 @@
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>이미지 패턴 배치</title>
+    <style>
+      /* ======================
+   CSS Variables & Themes
+   ====================== */
+
+      :root {
+        /* Light Mode Colors */
+        --bg-primary: #ffffff;
+        --bg-secondary: #f5f5f5;
+        --bg-tertiary: #eeeeee;
+        --text-primary: #202124;
+        --text-secondary: #5f6368;
+        --border-color: #dadce0;
+        --hover-bg: #f8f9fa;
+
+        /* Status Colors */
+        --color-success: #188038;
+        --color-primary: #1f73e6;
+        --color-preview-image: #269444;
+        --color-preview-selected: #196fe1;
+        --color-preview-inactive: #7c7c7c;
+        --color-error: #d9372a;
+
+        /* Spacing */
+        --spacing-xs: 4px;
+        --spacing-sm: 8px;
+        --spacing-md: 12px;
+        --spacing-lg: 16px;
+        --spacing-xl: 24px;
+
+        /* Border Radius */
+        --radius-sm: 2px;
+        --radius-md: 4px;
+        --radius-lg: 8px;
+
+        /* Transitions */
+        --transition: all 0.2s ease-in-out;
+      }
+
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg-primary: #202124;
+          --bg-secondary: #292a2d;
+          --bg-tertiary: #35363a;
+          --text-primary: #e8eaed;
+          --text-secondary: #9aa0a6;
+          --border-color: #5f6368;
+          --hover-bg: #35363a;
+        }
+      }
+
+      /* ======================
+   Base Styles
+   ====================== */
+
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        width: 100%;
+        height: 100%;
+        font-family: "Segoe UI", "Roboto", "Oxygen", "Ubuntu", "Cantarell",
+          sans-serif;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+      }
+
+      body {
+        background-color: var(--bg-primary);
+        color: var(--text-primary);
+        overflow-x: hidden;
+      }
+
+      /* ======================
+   Container & Layout
+   ====================== */
+
+      .container {
+        display: flex;
+        flex-direction: column;
+        height: 100vh;
+        width: 100%;
+      }
+
+      .header {
+        padding: var(--spacing-lg);
+        border-bottom: 1px solid var(--border-color);
+        background-color: var(--bg-primary);
+        flex-shrink: 0;
+      }
+
+      .header-title {
+        font-size: 18px;
+        font-weight: 500;
+        text-align: center;
+        color: var(--text-primary);
+      }
+
+      .action-bar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: var(--spacing-md) var(--spacing-lg);
+        border-bottom: 1px solid var(--border-color);
+        background-color: var(--bg-secondary);
+        flex-shrink: 0;
+        gap: var(--spacing-md);
+      }
+
+      .button-group {
+        display: flex;
+        gap: var(--spacing-sm);
+      }
+
+      .content {
+        flex: 1;
+        overflow-y: auto;
+        padding: var(--spacing-lg);
+      }
+
+      /* ======================
+   Buttons
+   ====================== */
+
+      .btn {
+        padding: 8px 16px;
+        border: none;
+        border-radius: var(--radius-md);
+        font-size: 14px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: var(--transition);
+        display: inline-flex;
+        align-items: center;
+        gap: var(--spacing-sm);
+        white-space: nowrap;
+      }
+
+      .btn-primary {
+        background-color: var(--color-primary);
+        color: white;
+      }
+
+      .btn-primary:hover:not(:disabled) {
+        background-color: #1666d1;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+      }
+
+      .btn-primary:disabled {
+        background-color: #ccc;
+        cursor: not-allowed;
+        opacity: 0.6;
+      }
+
+      .btn-success {
+        background-color: var(--color-success);
+        color: white;
+      }
+
+      .btn-success:hover:not(:disabled) {
+        background-color: #137333;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+      }
+
+      .btn-success:disabled {
+        background-color: #ccc;
+        cursor: not-allowed;
+        opacity: 0.6;
+      }
+
+      .btn-secondary {
+        background-color: var(--bg-tertiary);
+        color: var(--text-primary);
+        border: 1px solid var(--border-color);
+      }
+
+      .btn-secondary:hover {
+        background-color: var(--hover-bg);
+      }
+
+      .hidden {
+        display: none !important;
+      }
+
+      /* ======================
+   Sections
+   ====================== */
+
+      .section {
+        margin-bottom: var(--spacing-lg);
+      }
+
+      .section-header {
+        display: flex;
+        align-items: center;
+        gap: var(--spacing-sm);
+        cursor: pointer;
+        padding: var(--spacing-md) 0;
+        user-select: none;
+      }
+
+      .section-header:hover {
+        opacity: 0.8;
+      }
+
+      .toggle-icon {
+        display: inline-block;
+        font-size: 12px;
+        transition: transform 0.2s ease-in-out;
+        width: 16px;
+        text-align: center;
+      }
+
+      .section-header.expanded .toggle-icon {
+        transform: rotate(-180deg);
+      }
+
+      .section-title {
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--text-primary);
+        flex: 1;
+      }
+
+      .image-count {
+        font-size: 12px;
+        color: var(--text-secondary);
+      }
+
+      .divider {
+        height: 1px;
+        background-color: var(--border-color);
+        margin: var(--spacing-md) 0;
+      }
+
+      /* ======================
+   Image List
+   ====================== */
+
+      .image-list-container {
+        max-height: 200px;
+        overflow-y: auto;
+        background-color: var(--bg-secondary);
+        border-radius: var(--radius-md);
+        border: 1px solid var(--border-color);
+        transition: var(--transition);
+      }
+
+      .image-list {
+        list-style: none;
+        padding: var(--spacing-sm);
+      }
+
+      .image-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: var(--spacing-sm) var(--spacing-md);
+        background-color: var(--bg-primary);
+        border-radius: var(--radius-md);
+        margin-bottom: var(--spacing-sm);
+        border: 1px solid var(--border-color);
+        cursor: grab;
+      }
+
+      .image-item:active {
+        cursor: grabbing;
+        opacity: 0.7;
+      }
+
+      .image-item-name {
+        font-size: 13px;
+        color: var(--text-primary);
+        flex: 1;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .image-item-actions {
+        display: flex;
+        gap: var(--spacing-sm);
+        margin-left: var(--spacing-sm);
+      }
+
+      .icon-btn {
+        background: none;
+        border: none;
+        cursor: pointer;
+        font-size: 14px;
+        padding: 4px;
+        transition: var(--transition);
+        color: var(--text-secondary);
+      }
+
+      .icon-btn:hover {
+        color: var(--text-primary);
+        transform: scale(1.1);
+      }
+
+      /* ======================
+   Forms
+   ====================== */
+
+      .form-group {
+        margin-bottom: var(--spacing-md);
+      }
+
+      .form-row {
+        display: flex;
+        gap: var(--spacing-md);
+        margin-bottom: var(--spacing-md);
+      }
+
+      .flex-1 {
+        flex: 1;
+      }
+
+      label {
+        display: block;
+        font-size: 13px;
+        font-weight: 500;
+        color: var(--text-primary);
+        margin-bottom: var(--spacing-xs);
+      }
+
+      .form-input,
+      .form-input:focus {
+        width: 100%;
+        padding: 8px var(--spacing-sm);
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-md);
+        font-size: 13px;
+        background-color: var(--bg-primary);
+        color: var(--text-primary);
+        transition: var(--transition);
+      }
+
+      .form-input:focus {
+        outline: none;
+        border-color: var(--color-primary);
+        box-shadow: 0 0 0 2px rgba(31, 115, 230, 0.1);
+      }
+
+      .form-input:disabled {
+        background-color: var(--bg-secondary);
+        color: var(--text-secondary);
+        cursor: not-allowed;
+      }
+
+      .checkbox-group {
+        display: flex;
+        flex-direction: column;
+        gap: var(--spacing-sm);
+      }
+
+      .checkbox-label {
+        display: flex;
+        align-items: center;
+        gap: var(--spacing-sm);
+        cursor: pointer;
+        font-size: 13px;
+        color: var(--text-primary);
+        user-select: none;
+      }
+
+      .checkbox-label input[type="checkbox"] {
+        cursor: pointer;
+        width: 16px;
+        height: 16px;
+        accent-color: var(--color-primary);
+      }
+
+      /* ======================
+   Inactive Cell Table
+   ====================== */
+
+      .inactive-cell-container {
+        padding: var(--spacing-md);
+        background-color: var(--bg-secondary);
+        border-radius: var(--radius-md);
+        border: 1px solid var(--border-color);
+        transition: var(--transition);
+        margin-top: var(--spacing-sm);
+      }
+
+      .inactive-cell-table {
+        display: inline-flex;
+        gap: 2px;
+        flex-wrap: wrap;
+      }
+
+      .inactive-cell {
+        width: 30px;
+        height: 30px;
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-sm);
+        background-color: var(--bg-primary);
+        cursor: pointer;
+        transition: var(--transition);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 10px;
+        user-select: none;
+      }
+
+      .inactive-cell:hover {
+        background-color: var(--hover-bg);
+        border-color: var(--color-primary);
+      }
+
+      .inactive-cell.active {
+        background-color: var(--color-preview-inactive);
+        border-color: var(--color-preview-inactive);
+        color: white;
+      }
+
+      /* ======================
+   Progress Bar
+   ====================== */
+
+      .progress-container {
+        margin-top: var(--spacing-md);
+        padding: var(--spacing-md);
+        background-color: var(--bg-secondary);
+        border-radius: var(--radius-md);
+        border: 1px solid var(--border-color);
+      }
+
+      .progress-bar {
+        width: 100%;
+        height: 8px;
+        background-color: var(--bg-tertiary);
+        border-radius: var(--radius-md);
+        overflow: hidden;
+        margin-bottom: var(--spacing-sm);
+      }
+
+      .progress-bar::after {
+        content: "";
+        display: block;
+        height: 100%;
+        width: 0%;
+        background-color: var(--color-primary);
+        transition: width 0.3s ease-in-out;
+      }
+
+      .progress-text {
+        font-size: 12px;
+        color: var(--text-secondary);
+        display: block;
+        text-align: center;
+        margin-bottom: var(--spacing-sm);
+      }
+
+      .progress-error {
+        font-size: 12px;
+        color: var(--color-error);
+        text-align: center;
+        margin-top: var(--spacing-sm);
+      }
+
+      /* ======================
+   Scrollbar Styling
+   ====================== */
+
+      ::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+      }
+
+      ::-webkit-scrollbar-track {
+        background-color: var(--bg-secondary);
+      }
+
+      ::-webkit-scrollbar-thumb {
+        background-color: var(--border-color);
+        border-radius: var(--radius-md);
+      }
+
+      ::-webkit-scrollbar-thumb:hover {
+        background-color: var(--text-secondary);
+      }
+
+      /* ======================
+   Responsive Design
+   ====================== */
+
+      @media (max-width: 480px) {
+        .container {
+          width: 100vw;
+        }
+
+        .header,
+        .action-bar,
+        .content {
+          padding: var(--spacing-md);
+        }
+
+        .form-row {
+          flex-direction: column;
+          gap: var(--spacing-sm);
+        }
+
+        .action-bar {
+          flex-direction: column;
+          gap: var(--spacing-sm);
+        }
+
+        .btn {
+          width: 100%;
+          justify-content: center;
+        }
+
+        .image-list-container {
+          max-height: 150px;
+        }
+      }
+
+      /* ======================
+   Utility Classes
+   ====================== */
+
+      .text-center {
+        text-align: center;
+      }
+
+      .text-muted {
+        color: var(--text-secondary);
+      }
+
+      .mt-sm {
+        margin-top: var(--spacing-sm);
+      }
+
+      .mt-md {
+        margin-top: var(--spacing-md);
+      }
+
+      .mt-lg {
+        margin-top: var(--spacing-lg);
+      }
+
+      .mb-sm {
+        margin-bottom: var(--spacing-sm);
+      }
+
+      .mb-md {
+        margin-bottom: var(--spacing-md);
+      }
+
+      .mb-lg {
+        margin-bottom: var(--spacing-lg);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <!-- 헤더 -->
+      <header class="header">
+        <h1 class="header-title">Import Images Pattern</h1>
+        <div class="progress-container hidden" id="progressContainer">
+          <div class="progress-bar" id="progressBar"></div>
+          <span class="progress-text" id="progressText">0%</span>
+          <div class="progress-error" id="progressError"></div>
+        </div>
+      </header>
+
+      <!-- 상단 버튼 영역 -->
+      <div class="action-bar">
+        <button id="uploadBtn" class="btn btn-primary">
+          📁 이미지 가져오기
+        </button>
+        <div class="button-group">
+          <button id="cancelBtn" class="btn btn-secondary hidden">취소</button>
+          <button id="completeBtn" class="btn btn-success">완료</button>
+        </div>
+      </div>
+
+      <!-- 메인 콘텐츠 -->
+      <div class="content">
+        <!-- 이미지 리스트 (Collapsible) -->
+        <div class="section">
+          <div class="section-header" id="imageListHeader">
+            <span class="toggle-icon">▼</span>
+            <h2 class="section-title">가져온 이미지</h2>
+            <span class="image-count" id="imageCount">(0)</span>
+          </div>
+          <div class="image-list-container hidden" id="imageListContainer">
+            <ul class="image-list" id="imageList">
+              <!-- 이미지 항목이 동적으로 추가됨 -->
+            </ul>
+          </div>
+        </div>
+
+        <!-- 구분선 -->
+        <div class="divider"></div>
+
+        <!-- 설정 패널 -->
+        <div class="section">
+          <h2 class="section-title">설정</h2>
+
+          <!-- 셀 선택 -->
+          <div class="form-group">
+            <label for="selectedCell">선택된 셀:</label>
+            <input
+              type="text"
+              id="selectedCell"
+              class="form-input"
+              placeholder="셀을 선택해주세요"
+              readonly
+            />
+          </div>
+
+          <!-- 행/열 개수 -->
+          <div class="form-row">
+            <div class="form-group flex-1">
+              <label for="rowCount">행 개수:</label>
+              <input
+                type="number"
+                id="rowCount"
+                class="form-input"
+                min="1"
+                max="50"
+                value="2"
+              />
+            </div>
+            <div class="form-group flex-1">
+              <label for="colCount">열 개수:</label>
+              <input
+                type="number"
+                id="colCount"
+                class="form-input"
+                min="1"
+                max="50"
+                value="2"
+              />
+            </div>
+          </div>
+
+          <!-- 행/열 간격 -->
+          <div class="form-row">
+            <div class="form-group flex-1">
+              <label for="rowGap">행 간격:</label>
+              <input
+                type="number"
+                id="rowGap"
+                class="form-input"
+                min="0"
+                max="20"
+                value="0"
+              />
+            </div>
+            <div class="form-group flex-1">
+              <label for="colGap">열 간격:</label>
+              <input
+                type="number"
+                id="colGap"
+                class="form-input"
+                min="0"
+                max="20"
+                value="0"
+              />
+            </div>
+          </div>
+
+          <!-- 이미지 크기 -->
+          <div class="form-row">
+            <div class="form-group flex-1">
+              <label for="imageWidth">이미지 너비 (셀):</label>
+              <input
+                type="number"
+                id="imageWidth"
+                class="form-input"
+                min="0.5"
+                step="0.5"
+                value="1"
+              />
+            </div>
+            <div class="form-group flex-1">
+              <label for="imageHeight">이미지 높이 (셀):</label>
+              <input
+                type="number"
+                id="imageHeight"
+                class="form-input"
+                min="0.5"
+                step="0.5"
+                value="1"
+              />
+            </div>
+          </div>
+
+          <!-- 옵션 체크박스 -->
+          <div class="checkbox-group">
+            <label class="checkbox-label">
+              <input type="checkbox" id="fitToCellCheckbox" checked />
+              <span>셀의 크기에 맞춤</span>
+            </label>
+            <label class="checkbox-label">
+              <input type="checkbox" id="maintainRatioCheckbox" />
+              <span>이미지 비율 유지</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- 구분선 -->
+        <div class="divider"></div>
+
+        <!-- 비활성 셀 지정 -->
+        <div class="section">
+          <div class="section-header">
+            <label class="checkbox-label">
+              <input type="checkbox" id="inactiveCellCheckbox" />
+              <span>비활성 셀 지정</span>
+            </label>
+          </div>
+
+          <div
+            class="inactive-cell-container hidden"
+            id="inactiveCellContainer"
+          >
+            <div class="inactive-cell-table" id="inactiveCellTable">
+              <!-- 비활성 셀 표가 동적으로 생성됨 -->
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Hidden file input -->
+    <input
+      type="file"
+      id="fileInput"
+      multiple
+      accept="image/*"
+      style="display: none"
+    />
+
+    <script>
+      /**
+       * Import Images Pattern - Sidebar Frontend Logic
+       * 상태 관리, 이벤트 처리, UI 업데이트
+       */
+
+      /* ======================
+   Global State & Constants
+   ====================== */
+
+      const COLORS = {
+        selected: "#196fe1",
+        inactive: "#7c7c7c",
+        image: "#269444",
+        mixed: "#0d4a6d",
+      };
+
+      const STORAGE_KEYS = {
+        settings: "importImagePattern:settings",
+        version: "importImagePattern:version",
+        listExpanded: "importImagePattern:listExpanded",
+      };
+
+      const DEBOUNCE_DELAY = 500;
+
+      let appState = {
+        images: [],
+        selectedCell: null,
+        patternSettings: {
+          rows: 2,
+          cols: 2,
+          rowGap: 0,
+          colGap: 0,
+        },
+        imageSizeSettings: {
+          width: 1,
+          height: 1,
+          maintainRatio: false,
+          fitToCell: true,
+        },
+        inactiveCells: [],
+        isProcessing: false,
+        previewCells: [],
+      };
+
+      let debounceTimer = null;
+      let selectionListener = null;
+
+      /* ======================
+   Initialization
+   ====================== */
+
+      document.addEventListener("DOMContentLoaded", function () {
+        initializeApp();
+      });
+
+      function initializeApp() {
+        loadSettings();
+        setupEventListeners();
+        setupSelectionListener();
+        updateUI();
+      }
+
+      /* ======================
+   Event Listeners Setup
+   ====================== */
+
+      function setupEventListeners() {
+        // 버튼 이벤트
+        document
+          .getElementById("uploadBtn")
+          .addEventListener("click", handleUploadClick);
+        document
+          .getElementById("completeBtn")
+          .addEventListener("click", handleCompleteClick);
+        document
+          .getElementById("cancelBtn")
+          .addEventListener("click", handleCancelClick);
+
+        // 파일 입력
+        document
+          .getElementById("fileInput")
+          .addEventListener("change", handleFileSelect);
+
+        // 이미지 리스트 헤더 (collapsible)
+        document
+          .getElementById("imageListHeader")
+          .addEventListener("click", toggleImageList);
+
+        // 비활성 셀 체크박스
+        document
+          .getElementById("inactiveCellCheckbox")
+          .addEventListener("change", handleInactiveCellToggle);
+
+        // 설정 입력 필드
+        document
+          .getElementById("rowCount")
+          .addEventListener("input", debounceSettingChange);
+        document
+          .getElementById("colCount")
+          .addEventListener("input", debounceSettingChange);
+        document
+          .getElementById("rowGap")
+          .addEventListener("input", debounceSettingChange);
+        document
+          .getElementById("colGap")
+          .addEventListener("input", debounceSettingChange);
+        document
+          .getElementById("imageWidth")
+          .addEventListener("input", debounceSettingChange);
+        document
+          .getElementById("imageHeight")
+          .addEventListener("input", debounceSettingChange);
+
+        // 옵션 체크박스
+        document
+          .getElementById("fitToCellCheckbox")
+          .addEventListener("change", handleFitToCellChange);
+        document
+          .getElementById("maintainRatioCheckbox")
+          .addEventListener("change", handleMaintainRatioChange);
+      }
+
+      function setupSelectionListener() {
+        // Apps Script의 선택 변경 이벤트 감지
+        // 현재는 UI 업데이트로만 처리, 실제 선택은 수동 조회
+        setInterval(updateSelectedCell, 1000);
+      }
+
+      /* ======================
+   File Upload & Image Management
+   ====================== */
+
+      function handleUploadClick() {
+        document.getElementById("fileInput").click();
+      }
+
+      function handleFileSelect(e) {
+        const files = Array.from(e.target.files);
+
+        if (files.length === 0) return;
+
+        // 이미지 파일만 필터링
+        files.forEach((file, index) => {
+          if (!file.type.startsWith("image/")) return;
+
+          const reader = new FileReader();
+          reader.onload = function (event) {
+            const image = {
+              id: `img_${Date.now()}_${index}`,
+              name: file.name,
+              data: event.target.result,
+              file: file,
+              size: file.size,
+            };
+
+            appState.images.push(image);
+            updateImageList();
+            triggerPreviewUpdate();
+          };
+          reader.readAsArrayBuffer(file);
+        });
+
+        // 파일 입력 초기화
+        e.target.value = "";
+      }
+
+      function removeImage(imageId) {
+        appState.images = appState.images.filter((img) => img.id !== imageId);
+        updateImageList();
+        triggerPreviewUpdate();
+      }
+
+      function updateImageList() {
+        const imageList = document.getElementById("imageList");
+        const imageCount = document.getElementById("imageCount");
+
+        imageList.innerHTML = "";
+        imageCount.textContent = `(${appState.images.length})`;
+
+        appState.images.forEach((image) => {
+          const li = document.createElement("li");
+          li.className = "image-item";
+          li.innerHTML = `
+      <span class="image-item-name" title="${image.name}">${image.name}</span>
+      <div class="image-item-actions">
+        <button class="icon-btn" onclick="removeImage('${image.id}')">🗑️</button>
+      </div>
+    `;
+          imageList.appendChild(li);
+        });
+
+        updateCompleteButtonState();
+      }
+
+      /* ======================
+   Settings Management
+   ====================== */
+
+      function updateSelectedCell() {
+        google.script.run
+          .withSuccessHandler(function (result) {
+            if (result.success) {
+              appState.selectedCell = {
+                row: result.row,
+                col: result.col,
+                address: result.address,
+              };
+              document.getElementById("selectedCell").value = result.address;
+              triggerPreviewUpdate();
+            }
+          })
+          .getSelectedCellInfo();
+      }
+
+      function debounceSettingChange() {
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(handleSettingChange, DEBOUNCE_DELAY);
+      }
+
+      function handleSettingChange() {
+        const rows = parseInt(document.getElementById("rowCount").value) || 1;
+        const cols = parseInt(document.getElementById("colCount").value) || 1;
+        const rowGap = parseInt(document.getElementById("rowGap").value) || 0;
+        const colGap = parseInt(document.getElementById("colGap").value) || 0;
+        const width =
+          parseFloat(document.getElementById("imageWidth").value) || 1;
+        const height =
+          parseFloat(document.getElementById("imageHeight").value) || 1;
+
+        // 범위 검증
+        appState.patternSettings = {
+          rows: Math.max(1, Math.min(50, rows)),
+          cols: Math.max(1, Math.min(50, cols)),
+          rowGap: Math.max(0, Math.min(20, rowGap)),
+          colGap: Math.max(0, Math.min(20, colGap)),
+        };
+
+        appState.imageSizeSettings = {
+          width,
+          height,
+          maintainRatio: appState.imageSizeSettings.maintainRatio,
+          fitToCell: appState.imageSizeSettings.fitToCell,
+        };
+
+        // 행/열 개수 변경 시 비활성 셀 초기화
+        const prevRows = appState.inactiveCells.length;
+        const prevCols = appState.inactiveCells[0]?.length || 0;
+
+        if (prevRows !== rows || prevCols !== cols) {
+          initializeInactiveCells(rows, cols);
+          updateInactiveCellTable();
+        }
+
+        updateInactiveInputField();
+        saveSettings();
+        triggerPreviewUpdate();
+      }
+
+      function handleFitToCellChange(e) {
+        appState.imageSizeSettings.fitToCell = e.target.checked;
+
+        if (e.target.checked) {
+          appState.imageSizeSettings.maintainRatio = false;
+          document.getElementById("maintainRatioCheckbox").checked = false;
+          document.getElementById("imageWidth").disabled = true;
+          document.getElementById("imageHeight").disabled = true;
+        } else {
+          document.getElementById("imageWidth").disabled = false;
+          document.getElementById("imageHeight").disabled = false;
+        }
+
+        saveSettings();
+        triggerPreviewUpdate();
+      }
+
+      function handleMaintainRatioChange(e) {
+        appState.imageSizeSettings.maintainRatio = e.target.checked;
+
+        if (e.target.checked) {
+          appState.imageSizeSettings.fitToCell = false;
+          document.getElementById("fitToCellCheckbox").checked = false;
+          document.getElementById("imageWidth").disabled = false;
+          document.getElementById("imageHeight").disabled = false;
+        } else {
+          document.getElementById("imageWidth").disabled = false;
+          document.getElementById("imageHeight").disabled = false;
+        }
+
+        saveSettings();
+        triggerPreviewUpdate();
+      }
+
+      function toggleImageList() {
+        const container = document.getElementById("imageListContainer");
+        const header = document.getElementById("imageListHeader");
+
+        const isExpanded = !container.classList.contains("hidden");
+
+        if (isExpanded) {
+          container.classList.add("hidden");
+          header.classList.remove("expanded");
+        } else {
+          container.classList.remove("hidden");
+          header.classList.add("expanded");
+        }
+
+        localStorage.setItem(STORAGE_KEYS.listExpanded, !isExpanded);
+      }
+
+      function handleInactiveCellToggle(e) {
+        const container = document.getElementById("inactiveCellContainer");
+
+        if (e.target.checked) {
+          container.classList.remove("hidden");
+          initializeInactiveCells(
+            appState.patternSettings.rows,
+            appState.patternSettings.cols
+          );
+          updateInactiveCellTable();
+        } else {
+          container.classList.add("hidden");
+        }
+
+        saveSettings();
+        triggerPreviewUpdate();
+      }
+
+      /* ======================
+   Inactive Cells Management
+   ====================== */
+
+      function initializeInactiveCells(rows, cols) {
+        appState.inactiveCells = Array(rows)
+          .fill(null)
+          .map(() => Array(cols).fill(false));
+      }
+
+      function updateInactiveCellTable() {
+        const container = document.getElementById("inactiveCellTable");
+        container.innerHTML = "";
+
+        const { rows, cols } = appState.patternSettings;
+        const cellsPerRow = 5; // 한 줄에 최대 5개 셀 표시
+
+        let cellHTML =
+          '<div style="display: flex; flex-wrap: wrap; gap: 2px;">';
+
+        for (let r = 0; r < rows; r++) {
+          for (let c = 0; c < cols; c++) {
+            const isInactive = appState.inactiveCells[r][c];
+            const classNames = `inactive-cell ${isInactive ? "active" : ""}`;
+
+            cellHTML += `
+        <div class="${classNames}" onclick="toggleInactiveCell(${r}, ${c})">
+          ${r}:${c}
+        </div>
+      `;
+          }
+        }
+
+        cellHTML += "</div>";
+        container.innerHTML = cellHTML;
+      }
+
+      function toggleInactiveCell(row, col) {
+        appState.inactiveCells[row][col] = !appState.inactiveCells[row][col];
+        updateInactiveCellTable();
+        saveSettings();
+        triggerPreviewUpdate();
+      }
+
+      function updateInactiveInputField() {
+        const isChecked = document.getElementById(
+          "inactiveCellCheckbox"
+        ).checked;
+        const container = document.getElementById("inactiveCellContainer");
+
+        if (isChecked) {
+          container.classList.remove("hidden");
+        }
+      }
+
+      /* ======================
+   Preview & Layout
+   ====================== */
+
+      function triggerPreviewUpdate() {
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(updatePreview, DEBOUNCE_DELAY);
+      }
+
+      function updatePreview() {
+        if (!appState.selectedCell) {
+          console.log("셀을 먼저 선택해주세요.");
+          return;
+        }
+
+        if (appState.images.length === 0) {
+          console.log("이미지가 없습니다.");
+          return;
+        }
+
+        // Preview 로직은 Phase 3에서 구현
+        console.log("Preview will be updated with:", {
+          selectedCell: appState.selectedCell,
+          patternSettings: appState.patternSettings,
+          images: appState.images.length,
+        });
+      }
+
+      /* ======================
+   Complete Button Handlers
+   ====================== */
+
+      function handleCompleteClick() {
+        if (!appState.selectedCell) {
+          alert("셀을 먼저 선택해주세요.");
+          return;
+        }
+
+        if (appState.images.length === 0) {
+          alert("이미지를 먼저 선택해주세요.");
+          return;
+        }
+
+        appState.isProcessing = true;
+        updateCompleteButtonState();
+
+        // Phase 6에서 실제 이미지 삽입 로직 구현
+        console.log("이미지 삽입 시작:", {
+          cellLocation: appState.selectedCell,
+          imageCount: appState.images.length,
+          settings: appState.patternSettings,
+        });
+
+        // 테스트용 progress 표시
+        showProgress();
+      }
+
+      function handleCancelClick() {
+        appState.isProcessing = false;
+        updateCompleteButtonState();
+        hideProgress();
+
+        google.script.run.undoLastAction();
+      }
+
+      function updateCompleteButtonState() {
+        const completeBtn = document.getElementById("completeBtn");
+        const cancelBtn = document.getElementById("cancelBtn");
+
+        if (appState.isProcessing) {
+          completeBtn.textContent = "💾 저장";
+          completeBtn.classList.add("btn-success");
+          cancelBtn.classList.remove("hidden");
+        } else {
+          completeBtn.textContent = "완료";
+          completeBtn.classList.remove("hidden");
+          cancelBtn.classList.add("hidden");
+        }
+
+        completeBtn.disabled =
+          !appState.selectedCell || appState.images.length === 0;
+      }
+
+      /* ======================
+   Progress Display
+   ====================== */
+
+      function showProgress() {
+        const container = document.getElementById("progressContainer");
+        container.classList.remove("hidden");
+        setProgress(50);
+      }
+
+      function hideProgress() {
+        const container = document.getElementById("progressContainer");
+        setTimeout(() => {
+          container.classList.add("hidden");
+        }, 1000);
+      }
+
+      function setProgress(percent) {
+        const progressBar = document.getElementById("progressBar");
+        const progressText = document.getElementById("progressText");
+
+        progressBar.style.width = percent + "%";
+        progressText.textContent = Math.round(percent) + "%";
+      }
+
+      function setProgressError(message) {
+        const progressError = document.getElementById("progressError");
+        progressError.textContent = message;
+        progressError.style.color = "#d9372a";
+      }
+
+      /* ======================
+   UI Update
+   ====================== */
+
+      function updateUI() {
+        // Form 값 업데이트
+        document.getElementById("rowCount").value =
+          appState.patternSettings.rows;
+        document.getElementById("colCount").value =
+          appState.patternSettings.cols;
+        document.getElementById("rowGap").value =
+          appState.patternSettings.rowGap;
+        document.getElementById("colGap").value =
+          appState.patternSettings.colGap;
+        document.getElementById("imageWidth").value =
+          appState.imageSizeSettings.width;
+        document.getElementById("imageHeight").value =
+          appState.imageSizeSettings.height;
+        document.getElementById("fitToCellCheckbox").checked =
+          appState.imageSizeSettings.fitToCell;
+        document.getElementById("maintainRatioCheckbox").checked =
+          appState.imageSizeSettings.maintainRatio;
+
+        // 선택 셀 업데이트
+        updateSelectedCell();
+
+        // 이미지 리스트 업데이트
+        updateImageList();
+
+        // 비활성 셀 초기화
+        initializeInactiveCells(
+          appState.patternSettings.rows,
+          appState.patternSettings.cols
+        );
+
+        updateCompleteButtonState();
+      }
+
+      /* ======================
+   localStorage Management
+   ====================== */
+
+      function saveSettings() {
+        const settings = {
+          version: "1.0",
+          patternSettings: appState.patternSettings,
+          imageSizeSettings: appState.imageSizeSettings,
+          inactiveCells: appState.inactiveCells,
+          savedAt: new Date().toISOString(),
+        };
+
+        localStorage.setItem(STORAGE_KEYS.settings, JSON.stringify(settings));
+      }
+
+      function loadSettings() {
+        const saved = localStorage.getItem(STORAGE_KEYS.settings);
+
+        if (saved) {
+          try {
+            const data = JSON.parse(saved);
+
+            appState.patternSettings =
+              data.patternSettings || appState.patternSettings;
+            appState.imageSizeSettings =
+              data.imageSizeSettings || appState.imageSizeSettings;
+            appState.inactiveCells = data.inactiveCells || [];
+
+            // 비활성 셀이 없으면 초기화
+            if (appState.inactiveCells.length === 0) {
+              initializeInactiveCells(
+                appState.patternSettings.rows,
+                appState.patternSettings.cols
+              );
+            }
+          } catch (e) {
+            console.error("Settings load error:", e);
+          }
+        }
+
+        // 리스트 상태 복구
+        const isListExpanded =
+          localStorage.getItem(STORAGE_KEYS.listExpanded) === "true";
+        if (isListExpanded) {
+          document
+            .getElementById("imageListContainer")
+            .classList.remove("hidden");
+          document.getElementById("imageListHeader").classList.add("expanded");
+        }
+      }
+
+      /* ======================
+   Utility Functions
+   ====================== */
+
+      function calculateLayoutPositions() {
+        const { rows, cols, rowGap, colGap } = appState.patternSettings;
+        const { row: startRow, col: startCol } = appState.selectedCell;
+
+        const positions = [];
+        let imageIndex = 0;
+
+        for (let r = 0; r < rows; r++) {
+          for (let c = 0; c < cols; c++) {
+            // 실제 셀 좌표 계산
+            const actualRow = startRow + r * (1 + rowGap);
+            const actualCol = startCol + c * (1 + colGap);
+
+            // 비활성 셀 확인
+            const isInactive =
+              appState.inactiveCells[r] && appState.inactiveCells[r][c];
+
+            if (!isInactive && imageIndex < appState.images.length) {
+              positions.push({
+                imageIndex,
+                row: actualRow,
+                col: actualCol,
+              });
+              imageIndex++;
+            }
+          }
+        }
+
+        return positions;
+      }
+
+      console.log("Sidebar initialized");
+    </script>
+  </body>
+</html>
