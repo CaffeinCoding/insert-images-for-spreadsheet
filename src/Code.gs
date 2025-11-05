@@ -134,14 +134,17 @@ function calculateLayoutPositions(settings) {
     rowGap = 0,
     colGap = 0,
     inactiveCells = [],
+    mergedNumRows = 1,
+    mergedNumCols = 1,
   } = settings;
 
   const positions = [];
 
   for (let r = 0; r < rows; r++) {
     for (let c = 0; c < cols; c++) {
-      const actualRow = startRow + r * (1 + rowGap);
-      const actualCol = startCol + c * (1 + colGap);
+      // ✅ 병합된 셀 크기를 고려한 실제 셀 좌표 계산
+      const actualRow = startRow + r * (mergedNumRows + rowGap);
+      const actualCol = startCol + c * (mergedNumCols + colGap);
 
       const isInactive = inactiveCells[r] && inactiveCells[r][c];
 

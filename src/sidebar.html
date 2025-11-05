@@ -1707,6 +1707,8 @@
                   appState.selectedCellDimensions = {
                     width: result.width,
                     height: result.height,
+                    numRows: result.numRows,
+                    numCols: result.numCols,
                   };
                   console.log(
                     `✅ 셀 크기 재확인: ${result.width}x${result.height}px`
@@ -2486,14 +2488,20 @@
         const { rows, cols, rowGap, colGap } = appState.patternSettings;
         const { row: startRow, col: startCol } = appState.selectedCell;
 
+        // ✅ 병합된 셀 크기 정보 가져오기
+        const mergedNumRows = appState.selectedCellDimensions?.numRows || 1;
+        const mergedNumCols = appState.selectedCellDimensions?.numCols || 1;
+
         const positions = [];
         let imageIndex = 0;
 
         for (let r = 0; r < rows; r++) {
           for (let c = 0; c < cols; c++) {
-            // 실제 셀 좌표 계산
-            const actualRow = startRow + r * (1 + rowGap);
-            const actualCol = startCol + c * (1 + colGap);
+            // ✅ 병합된 셀 크기를 고려한 실제 셀 좌표 계산
+            // 행: 병합된 셀의 높이(행 수) + 간격으로 계산
+            const actualRow = startRow + r * (mergedNumRows + rowGap);
+            // 열: 병합된 셀의 너비(열 수) + 간격으로 계산
+            const actualCol = startCol + c * (mergedNumCols + colGap);
 
             // 비활성 셀 확인
             const isInactive =
@@ -2513,7 +2521,7 @@
               });
 
               console.log(
-                `📍 위치 ${imageIndex}: (${actualRow}, ${actualCol}) - 크기: ${imageSize.width}x${imageSize.height} 픽셀`
+                `📍 위치 ${imageIndex}: (${actualRow}, ${actualCol}) - 크기: ${imageSize.width}x${imageSize.height} 픽셀 [병합셀: ${mergedNumRows}행x${mergedNumCols}열]`
               );
               imageIndex++;
             }
@@ -2683,6 +2691,8 @@
                     appState.selectedCellDimensions = {
                       width: dimResult.width,
                       height: dimResult.height,
+                      numRows: dimResult.numRows,
+                      numCols: dimResult.numCols,
                     };
 
                     // UI에 정보 표시
