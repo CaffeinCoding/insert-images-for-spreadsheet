@@ -395,9 +395,9 @@
       }
 
       .inactive-cell-table {
-        display: inline-flex;
-        gap: 2px;
-        flex-wrap: wrap;
+        display: block;
+        width: 100%;
+        text-align: center;
       }
 
       .inactive-cell {
@@ -1244,53 +1244,117 @@
           return;
         }
 
-        // 이미지 파일만 필터링
-        files.forEach((file, index) => {
-          if (!file.type.startsWith("image/")) {
-            console.warn(`⚠️ 이미지가 아닙니다: ${file.name}`);
-            return;
-          }
-
-          const reader = new FileReader();
-          reader.onload = function (event) {
-            // Phase 2: 이미지 메타데이터 추출
-            const img = new Image();
-            img.onload = function () {
-              const image = {
-                id: `img_${Date.now()}_${index}`,
-                name: file.name,
-                data: event.target.result,
-                file: file,
-                size: file.size,
-                // Phase 2 추가: 이미지 메타데이터
-                width: img.width,
-                height: img.height,
-                ratio: img.width / img.height,
-              };
-
-              appState.images.push(image);
-              updateImageList();
-              // triggerPreviewUpdate(); // 프리뷰 제거
-              console.log(
-                `✅ 이미지 로드: ${file.name} (${img.width}x${img.height})`
-              );
-            };
-            img.onerror = function () {
-              console.error(`❌ 이미지 로드 실패: ${file.name}`);
-              alert(`이미지 로드 실패: ${file.name}`);
-            };
-            img.src = event.target.result;
-          };
-          reader.onerror = function () {
-            console.error(`❌ 파일 읽기 실패: ${file.name}`);
-          };
-          reader.readAsDataURL(file);
-        });
-
-        // 파일 입력 초기화
+        // 파일 입력 초기화 (먼저 처리)
         if (e.target && e.target.value !== undefined) {
           e.target.value = "";
         }
+
+        // 이미지 파일만 필터링하고 Promise 배열 생성
+        const imageLoadPromises = files
+          .map((file, index) => {
+            if (!file.type.startsWith("image/")) {
+              console.warn(`⚠️ 이미지가 아닙니다: ${file.name}`);
+              return Promise.reject(new Error(`Not an image: ${file.name}`));
+            }
+
+            // 각 파일을 Promise로 감싸기 (try 단계)
+            return new Promise((resolve, reject) => {
+              const reader = new FileReader();
+
+              reader.onload = function (event) {
+                try {
+                  // Phase 2: 이미지 메타데이터 추출
+                  const img = new Image();
+
+                  img.onload = function () {
+                    try {
+                      const image = {
+                        id: `img_${Date.now()}_${index}`,
+                        name: file.name,
+                        data: event.target.result,
+                        file: file,
+                        size: file.size,
+                        // Phase 2 추가: 이미지 메타데이터
+                        width: img.width,
+                        height: img.height,
+                        ratio: img.width / img.height,
+                      };
+
+                      console.log(
+                        `✅ 이미지 로드: ${file.name} (${img.width}x${img.height})`
+                      );
+                      resolve(image); // 성공 - resolve
+                    } catch (err) {
+                      reject(err); // catch 단계
+                    }
+                  };
+
+                  img.onerror = function () {
+                    reject(new Error(`이미지 로드 실패: ${file.name}`)); // catch 단계
+                  };
+
+                  img.src = event.target.result;
+                } catch (err) {
+                  reject(err); // catch 단계
+                }
+              };
+
+              reader.onerror = function () {
+                reject(new Error(`파일 읽기 실패: ${file.name}`)); // catch 단계
+              };
+
+              reader.readAsDataURL(file);
+            });
+          })
+          .filter((promise) => promise); // Promise가 아닌 것 제거 (이미지 아닌 파일)
+
+        // Promise.allSettled: 모든 Promise가 완료될 때까지 대기 (try-catch-finally 패턴)
+        Promise.allSettled(imageLoadPromises)
+          .then((results) => {
+            // finally 단계: 모든 작업 완료 후 실행
+            console.group("📦 이미지 로드 결과");
+
+            let successCount = 0;
+            let errorCount = 0;
+
+            results.forEach((result, idx) => {
+              if (result.status === "fulfilled") {
+                appState.images.push(result.value);
+                successCount++;
+                console.log(`✅ [${idx + 1}] 로드 성공: ${result.value.name}`);
+              } else {
+                errorCount++;
+                console.error(
+                  `❌ [${idx + 1}] 로드 실패: ${result.reason.message}`
+                );
+                alert(`이미지 로드 실패: ${result.reason.message}`);
+              }
+            });
+
+            console.log(`📊 총 ${successCount}개 성공 / ${errorCount}개 실패`);
+            console.groupEnd();
+
+            // finally 단계: 정렬 및 UI 업데이트
+            if (appState.images.length > 0) {
+              appState.images.sort((a, b) => {
+                return a.name.localeCompare(b.name, undefined, {
+                  numeric: true,
+                  sensitivity: "base",
+                });
+              });
+              console.log(`✅ 이미지 정렬 완료 (파일 이름순 오름차순)`);
+            }
+
+            // 모든 작업 완료 후 updateImageList 호출
+            updateImageList();
+            console.log(
+              `✅ 화면 업데이트 완료: 총 ${appState.images.length}개 이미지`
+            );
+          })
+          .catch((err) => {
+            // 예상치 못한 오류 처리
+            console.error("❌ 이미지 로드 중 예상치 못한 오류:", err);
+          });
       }
 
       function removeImage(imageId) {
@@ -1572,10 +1636,8 @@
         container.innerHTML = "";
 
         const { rows, cols } = appState.patternSettings;
-        const cellsPerRow = 5; // 한 줄에 최대 5개 셀 표시
 
-        let cellHTML =
-          '<div style="display: flex; flex-wrap: wrap; gap: 2px;">';
+        let cellHTML = `<div style="display: grid; grid-template-columns: repeat(${cols}, 1fr); gap: 0; width: fit-content; margin: 0 auto;">`;
 
         for (let r = 0; r < rows; r++) {
           for (let c = 0; c < cols; c++) {
@@ -1849,17 +1911,12 @@
                   // 진행률 업데이트
                   setProgress(100);
 
-                  // ✅ 방법 2: 스마트 새로고침
-                  // 사용자에게 선택권 제공: 즉시 vs 5초 후
-                  const message =
+                  alert(
                     `✅ 이미지 삽입 완료!\n` +
-                    `삽입됨: ${result.completed}개\n` +
-                    `실패: ${result.failed}개\n\n` +
-                    `스프레드시트를 확인하세요!\n\n` +
-                    `5초 후 자동으로 페이지 새로고침됩니다.\n` +
-                    `지금 새로고침하시겠습니까?`;
-
-                  const shouldReloadNow = confirm(message);
+                      `삽입됨: ${result.completed}개\n` +
+                      `실패: ${result.failed}개\n\n` +
+                      `새로고침 이후에 스프레드시트에 이미지가 표시됩니다.`
+                  );
 
                   console.log(
                     `✅ 총 ${result.completed}개 이미지 삽입 완료 (실패: ${result.failed})`
@@ -1889,47 +1946,9 @@
                     console.groupEnd();
                   }
 
-                  // ✅ 사용자 선택에 따른 새로고침
-                  if (shouldReloadNow) {
-                    // 사용자가 "확인"을 클릭: 즉시 새로고침
-                    console.log("🔄 사용자가 즉시 새로고침 선택");
-                    setTimeout(() => {
-                      console.log("✅ 페이지 새로고침 시작...");
-                      window.location.reload();
-                    }, 500);
-                  } else {
-                    // 사용자가 "취소"를 클릭: 5초 후 자동 새로고침
-                    console.log("🔄 5초 후 자동 페이지 새로고침 예약");
-                    console.log(
-                      "💡 팁: 콘솔에서 cancelReload() 실행 시 취소 가능"
-                    );
-
-                    let reloadTimeout = setTimeout(() => {
-                      console.log("✅ 예약된 페이지 새로고침 실행");
-                      window.location.reload();
-                    }, 5000);
-
-                    // 사용자가 원하면 새로고침 취소 가능
-                    window.cancelReload = () => {
-                      clearTimeout(reloadTimeout);
-                      console.log("❌ 자동 새로고침이 취소되었습니다");
-                      appState.images = [];
-                      updateImageList();
-                      appState.isProcessing = false;
-                      updateCompleteButtonState();
-                    };
-
-                    // 카운트다운 표시 (콘솔)
-                    let countdown = 5;
-                    const countdownInterval = setInterval(() => {
-                      countdown--;
-                      if (countdown > 0) {
-                        console.log(`⏳ ${countdown}초 후 새로고침...`);
-                      } else {
-                        clearInterval(countdownInterval);
-                      }
-                    }, 1000);
-                  }
+                  // ✅ 진행률만 숨기기 (설정값은 유지)
+                  hideProgress();
+                  console.log("✅ 진행률 표시 숨김");
                 } else {
                   // 에러 표시
                   const errorMessage = result.error || "이미지 삽입 실패";
