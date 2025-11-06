@@ -1363,6 +1363,9 @@
         // triggerPreviewUpdate(); // 프리뷰 제거
       }
 
+      // ✅ 글로벌 드래그 상태 (참고 문서 패턴)
+      let draggedImageId = null;
+
       function updateImageList() {
         const imageList = document.getElementById("imageList");
         const imageCount = document.getElementById("imageCount");
@@ -1407,60 +1410,24 @@
           li.dataset.index = index;
           li.dataset.imageId = image.id;
 
-          // 드래그 이벤트 (메모리 누수 방지: 클로저로 index 캡처)
+          // ✅ dragstart: 드래그 시작 시 현재 이미지 ID 저장 및 시각적 표시
           li.addEventListener("dragstart", (e) => {
             e.dataTransfer.effectAllowed = "move";
-            e.dataTransfer.setData("text/plain", index.toString());
+            e.dataTransfer.setData("text/plain", image.id);
+            draggedImageId = image.id; // 글로벌 상태 업데이트
             li.style.opacity = "0.5";
-            console.log(`🔄 드래그 시작: index=${index}, 이미지=${image.name}`);
+            console.log(
+              `🔄 드래그 시작: image.id=${image.id}, 이미지=${image.name}`
+            );
           });
 
+          // ✅ dragend: 드래그 종료 시 스타일 복원
           li.addEventListener("dragend", (e) => {
             li.style.opacity = "1";
-          });
-
-          li.addEventListener("dragover", (e) => {
-            e.preventDefault();
-            e.dataTransfer.dropEffect = "move";
-            li.style.borderTop = "2px solid var(--color-primary)";
-          });
-
-          li.addEventListener("dragleave", (e) => {
             li.style.borderTop = "none";
           });
 
-          li.addEventListener("drop", (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-
-            const draggedIndexStr = e.dataTransfer.getData("text/plain");
-            const draggedIndex = parseInt(draggedIndexStr);
-            const targetIndex = index;
-
-            console.log(`🔄 드롭 이벤트: ${draggedIndex} → ${targetIndex}`);
-
-            if (isNaN(draggedIndex)) {
-              console.error("❌ draggedIndex 파싱 실패");
-              li.style.borderTop = "none";
-              return;
-            }
-
-            if (
-              draggedIndex !== targetIndex &&
-              draggedIndex < appState.images.length
-            ) {
-              const [movedImage] = appState.images.splice(draggedIndex, 1);
-              appState.images.splice(targetIndex, 0, movedImage);
-              console.log(
-                `✅ 이미지 순서 변경: ${draggedIndex} → ${targetIndex}`
-              );
-
-              updateImageList();
-              saveSettings();
-            }
-
-            li.style.borderTop = "none";
-          });
+          // ⚠️ li 요소의 dragover는 제거됨 - 컨테이너 레벨에서만 처리!
 
           imageList.appendChild(li);
         });
@@ -1470,19 +1437,71 @@
       }
 
       /**
-       * 이미지 드롭 영역 설정
+       * 이미지 드롭 영역 설정 (참고 문서 패턴 적용)
+       * - dragover: 리스트 내 순서 변경 및 파일 드롭 처리
+       * - drop: 배열 업데이트 및 파일 추가
        */
       function setupImageDropZone() {
+        const imageList = document.getElementById("imageList");
         const imageContainer = document.getElementById("imageListContainer");
-        if (!imageContainer) return;
+        if (!imageContainer || !imageList) return;
 
-        imageContainer.addEventListener("dragover", (e) => {
-          e.preventDefault();
-          e.dataTransfer.dropEffect = "copy";
-          imageContainer.style.backgroundColor = "rgba(76, 175, 80, 0.1)";
-          imageContainer.style.borderColor = "var(--button-bg)";
+        // ✅ dragover: 두 가지 드롭 모드 처리
+        imageList.addEventListener("dragover", (e) => {
+          e.preventDefault(); // ⚠️ 필수! 드롭 허용
+
+          const files = e.dataTransfer.files;
+
+          if (files.length > 0) {
+            // 🔵 파일 드래그 모드
+            e.dataTransfer.dropEffect = "copy";
+            console.log("📂 파일 드래그 감지");
+          } else if (draggedImageId) {
+            // 🟢 리스트 아이템 드래그 모드 (참고 문서 방식)
+            e.dataTransfer.dropEffect = "move";
+
+            // ✅ 마우스 Y 위치와 가장 가까운 li 찾기
+            const afterElement = getDragAfterElement(imageList, e.clientY);
+
+            if (afterElement == null) {
+              // 리스트 끝에 추가
+              imageList.appendChild(
+                document.querySelector(`[data-image-id="${draggedImageId}"]`)
+              );
+            } else {
+              // 해당 요소 앞에 삽입
+              const draggedLi = document.querySelector(
+                `[data-image-id="${draggedImageId}"]`
+              );
+              if (draggedLi) {
+                imageList.insertBefore(draggedLi, afterElement);
+              }
+            }
+          }
         });
 
+        // ✅ dragover 헬퍼: 마우스 Y 위치와 가장 가까운 요소 찾기
+        function getDragAfterElement(container, y) {
+          const draggableElements = [
+            ...container.querySelectorAll(".image-item:not([dragging='true'])"),
+          ];
+
+          return draggableElements.reduce(
+            (closest, child) => {
+              const box = child.getBoundingClientRect();
+              const offset = y - box.top - box.height / 2;
+
+              if (offset < 0 && offset > closest.offset) {
+                return { offset: offset, element: child };
+              } else {
+                return closest;
+              }
+            },
+            { offset: Number.NEGATIVE_INFINITY }
+          ).element;
+        }
+
+        // ✅ dragleave: 배경색 복원
         imageContainer.addEventListener("dragleave", (e) => {
           if (e.target === imageContainer) {
             imageContainer.style.backgroundColor = "";
@@ -1490,18 +1509,52 @@
           }
         });
 
-        imageContainer.addEventListener("drop", (e) => {
+        // ✅ drop: 파일 추가 처리 (리스트 순서는 이미 dragover에서 처리됨)
+        imageList.addEventListener("drop", (e) => {
           e.preventDefault();
           e.stopPropagation();
-          imageContainer.style.backgroundColor = "";
-          imageContainer.style.borderColor = "";
 
           const files = e.dataTransfer.files;
+
+          // 파일 드롭 처리
           if (files.length > 0) {
             handleFileSelect(files);
             console.log(`✅ 드래그앤드롭으로 ${files.length}개 파일 추가`);
+          } else if (draggedImageId) {
+            // ✅ 리스트 아이템 드롭 완료 - 배열 업데이트
+            updateImageListArrayAfterDrop();
+            draggedImageId = null; // 드래그 상태 초기화
+            console.log("✅ 이미지 순서 변경 완료");
+          }
+
+          imageContainer.style.backgroundColor = "";
+          imageContainer.style.borderColor = "";
+        });
+      }
+
+      // ✅ 드롭 후 배열 상태를 DOM 순서로 동기화
+      function updateImageListArrayAfterDrop() {
+        const imageList = document.getElementById("imageList");
+        const newOrder = [];
+
+        imageList.querySelectorAll(".image-item").forEach((li) => {
+          const imageId = li.dataset.imageId;
+          const image = appState.images.find((img) => img.id === imageId);
+          if (image) {
+            newOrder.push(image);
           }
         });
+
+        // 배열 재정렬
+        appState.images = newOrder;
+        console.log(
+          `📋 변경 후 순서: ${appState.images
+            .map((img) => img.name)
+            .join(" → ")}`
+        );
+
+        // 상태 저장
+        saveSettings();
       }
 
       /* ======================
