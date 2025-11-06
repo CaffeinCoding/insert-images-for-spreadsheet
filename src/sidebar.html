@@ -1077,6 +1077,7 @@
         },
         inactiveCells: [],
         isProcessing: false,
+        isUploading: false,
         previewCells: [],
       };
 
@@ -1883,6 +1884,7 @@
         }
 
         appState.isProcessing = true;
+        appState.isUploading = true;
         updateCompleteButtonState();
         showProgress();
 
@@ -1961,6 +1963,8 @@
             // Backend 함수 호출
             google.script.run
               .withSuccessHandler(function (result) {
+                appState.isUploading = false;
+                updateCompleteButtonState();
                 console.log("🎉 이미지 삽입 결과:", result);
 
                 // ✅ 결과 검증
@@ -2035,6 +2039,7 @@
                   }
 
                   alert("이미지 삽입 실패: " + errorMessage);
+                  appState.isUploading = false;
                   appState.isProcessing = false;
                   updateCompleteButtonState();
                   hideProgress();
@@ -2051,6 +2056,7 @@
                 setProgressError("서버 통신 오류");
                 alert("오류 발생: " + (error.message || error.toString()));
 
+                appState.isUploading = false;
                 appState.isProcessing = false;
                 updateCompleteButtonState();
                 hideProgress();
@@ -2067,6 +2073,7 @@
             setProgressError(error.message || "이미지 처리 중 오류 발생");
             alert("이미지 처리 중 오류가 발생했습니다: " + error.message);
 
+            appState.isUploading = false;
             appState.isProcessing = false;
             updateCompleteButtonState();
             hideProgress();
@@ -2082,18 +2089,24 @@
             return;
           }
 
+          appState.isUploading = true;
+          updateCompleteButtonState();
+
           // Undo 호출
           google.script.run
             .withSuccessHandler(function (result) {
               console.log("✅ Undo 완료:", result);
               localStorage.removeItem(STORAGE_KEYS.insertionState);
               appState.isProcessing = false;
+              appState.isUploading = false;
               updateCompleteButtonState();
               hideProgress();
               alert("작업이 취소되었습니다.");
             })
             .withFailureHandler(function (error) {
               console.error("❌ Undo 실패:", error);
+              appState.isUploading = false;
+              updateCompleteButtonState();
               alert("작업 취소에 실패했습니다.");
             })
             .undoLastAction();
@@ -2104,11 +2117,18 @@
         const completeBtn = document.getElementById("completeBtn");
         const cancelBtn = document.getElementById("cancelBtn");
 
+        if (appState.isUploading) {
+          completeBtn.disabled = true;
+          cancelBtn.disabled = true;
+          return;
+        }
+
         if (appState.isProcessing) {
           completeBtn.textContent = "💾 저장";
           completeBtn.classList.add("btn-success");
           cancelBtn.classList.remove("hidden");
           completeBtn.disabled = false; // 저장 상태에서는 항상 활성화
+          cancelBtn.disabled = false;
         } else {
           completeBtn.textContent = "적용";
           completeBtn.classList.remove("hidden");
