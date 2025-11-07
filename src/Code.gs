@@ -1,5 +1,5 @@
 /**
- * Import Images Pattern - Google Apps Script Backend
+ * Insert Images Pattern - Google Apps Script Backend
  * Sidebar를 열고 선택된 셀을 감지하는 기본 기능 구현
  */
 
@@ -8,8 +8,8 @@
  */
 function onOpen() {
   const ui = SpreadsheetApp.getUi();
-  ui.createMenu("이미지 패턴")
-    .addItem("이미지 가져오기", "openSidebar")
+  ui.createMenu("Insert Images")
+    .addItem("Insert Images", "openSidebar")
     .addToUi();
 }
 
