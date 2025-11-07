@@ -1338,12 +1338,7 @@
 
             // finally 단계: 정렬 및 UI 업데이트
             if (appState.images.length > 0) {
-              appState.images.sort((a, b) => {
-                return a.name.localeCompare(b.name, undefined, {
-                  numeric: true,
-                  sensitivity: "base",
-                });
-              });
+              appState.images.sort(naturalSort);
               console.log(`✅ 이미지 정렬 완료 (파일 이름순 오름차순)`);
             }
 
@@ -1363,6 +1358,75 @@
         appState.images = appState.images.filter((img) => img.id !== imageId);
         updateImageList();
         // triggerPreviewUpdate(); // 프리뷰 제거
+      }
+
+      /**
+       * 파일 이름 자연 정렬 함수
+       * @param {object} a - 비교할 첫 번째 이미지 객체
+       * @param {object} b - 비교할 두 번째 이미지 객체
+       * @returns {number} - 정렬 순서
+       */
+      function naturalSort(a, b) {
+        const re =
+          /(^-?[0-9]+(\.?[0-9]*)[df]?e?[0-9]?$|^0x[0-9a-f]+$|[0-9]+)/gi;
+        const sre = /(^[ ]*|[ ]*$)/g;
+        const dre =
+          /(^([\w ]+,?[\w ]+)?[\w ]+,?[\w ]+\d+:\d+(:\d+)?[\w ]?|^\d{1,4}[\/\-]\d{1,4}[\/\-]\d{1,4}|^\w+, \w+ \d+, \d{4})/;
+        const hre = /^0x[0-9a-f]+$/i;
+        const ore = /^0/;
+
+        const x = a.name.toLowerCase().replace(sre, "") || "";
+        const y = b.name.toLowerCase().replace(sre, "") || "";
+
+        const xN = x
+          .replace(re, "\0$1\0")
+          .replace(/\0$/, "")
+          .replace(/^\0/, "")
+          .split("\0");
+        const yN = y
+          .replace(re, "\0$1\0")
+          .replace(/\0$/, "")
+          .replace(/^\0/, "")
+          .split("\0");
+
+        const xD =
+          parseInt(x.match(hre), 16) ||
+          (xN.length !== 1 && x.match(dre) && Date.parse(x));
+        const yD =
+          parseInt(y.match(hre), 16) ||
+          (xD && y.match(dre) && Date.parse(y)) ||
+          null;
+
+        if (yD) {
+          if (xD < yD) return -1;
+          if (xD > yD) return 1;
+        }
+
+        for (
+          let cLoc = 0, numS = Math.max(xN.length, yN.length);
+          cLoc < numS;
+          cLoc++
+        ) {
+          let oFxNcL =
+            (!(xN[cLoc] || "").match(ore) && parseFloat(xN[cLoc])) ||
+            xN[cLoc] ||
+            0;
+          let oFyNcL =
+            (!(yN[cLoc] || "").match(ore) && parseFloat(yN[cLoc])) ||
+            yN[cLoc] ||
+            0;
+
+          if (isNaN(oFxNcL) !== isNaN(oFyNcL)) {
+            return isNaN(oFxNcL) ? 1 : -1;
+          }
+          if (/[^\x00-\x80]/.test(oFxNcL + oFyNcL) && oFxNcL.localeCompare) {
+            const comp = oFxNcL.localeCompare(oFyNcL);
+            if (comp) return comp;
+          }
+          if (oFxNcL < oFyNcL) return -1;
+          if (oFxNcL > oFyNcL) return 1;
+        }
+        return 0;
       }
 
       // ✅ 글로벌 드래그 상태 (참고 문서 패턴)
