@@ -1,5 +1,5 @@
 /**
- * Insert Images Pattern - Google Apps Script Backend
+ * Insert Images For Spreadsheet - Google Apps Script Backend
  * Sidebar를 열고 선택된 셀을 감지하는 기본 기능 구현
  */
 
