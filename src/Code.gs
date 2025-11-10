@@ -4,6 +4,15 @@
  */
 
 /**
+ * HTML 파일을 포함하기 위한 헬퍼 함수
+ * @param {string} filename - 포함할 파일 이름 (확장자 제외)
+ * @returns {string} 파일의 HTML 콘텐츠
+ */
+function include(filename) {
+  return HtmlService.createHtmlOutputFromFile(filename).getContent();
+}
+
+/**
  * 스프레드시트 메뉴 추가 및 Sidebar 열기
  */
 function onOpen() {
@@ -17,7 +26,8 @@ function onOpen() {
  * Sidebar 열기
  */
 function openSidebar() {
-  const html = HtmlService.createHtmlOutputFromFile("sidebar")
+  const html = HtmlService.createTemplateFromFile("sidebar")
+    .evaluate()
     .setWidth(350)
     .setHeight(700);
   SpreadsheetApp.getUi().showModelessDialog(html, "이미지 패턴 배치");
